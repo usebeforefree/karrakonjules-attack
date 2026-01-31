@@ -28,16 +28,35 @@ pub const State = struct {
     fn loadFighterTextures(self: *State) !void {
         inline for (@typeInfo(Fighter).@"enum".fields, 0..) |f, i| {
             const fighter_name = f.name;
-            const fighter_texture = try rl.loadTexture("assets/bodies/" ++ fighter_name ++ ".png");
+            const fighter_texture = try rl.loadTexture(std.fmt.comptimePrint("assets/bodies/{s}.png", .{fighter_name}));
 
             self.fighter_textures[i] = fighter_texture;
         }
     }
 
+    fn loadMaskTextures(self: *State) !void {
+        inline for (@typeInfo(MaskColour).@"enum".fields, 0..) |m, i| {
+            const mask_colour = m.name;
+            inline for (0..mask_index_num) |j| {
+                const mask_texture = try rl.loadTexture(std.fmt.comptimePrint(
+                    "assets/masks/{s}/{s}_{}.png",
+                    .{ mask_colour, mask_colour, j + 1 },
+                ));
+                self.mask_textures[i + j] = mask_texture;
+            }
+        }
+    }
+
+    // num of different masks per colour
+    const mask_index_num = 4;
+    const mask_num = @typeInfo(MaskColour).@"enum".fields.len * mask_index_num;
+    var masks_buf: [mask_num]Mask = undefined;
+
     const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
     var fighters_buf: [fighter_num]FighterStats = undefined;
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
     fighter_textures: [fighter_num]rl.Texture2D = undefined,
+    mask_textures: [mask_num]rl.Texture2D = undefined,
 
     scale: f32 = undefined,
 
@@ -95,7 +114,12 @@ const FighterStats = struct {
     mask: Mask,
 };
 
-const Mask = enum {
+const Mask = struct {
+    colour: MaskColour,
+    index: u2,
+};
+
+const MaskColour = enum {
     red,
     blue,
     green,
@@ -175,6 +199,7 @@ pub fn main() anyerror!void {
     const sun_rays = try rl.loadTexture("assets/sun_rays.png");
     const cloud = try rl.loadTexture("assets/clouds/cloud_1.png");
     try state.loadFighterTextures();
+    try state.loadMaskTextures();
 
     level1.enemies[0] = Enemy{
         .attack_speed_ms = 2000,
@@ -295,7 +320,7 @@ pub fn main() anyerror!void {
 
                     if (is_clicked) {
                         // choose mask...
-                        const mask = Mask.blue;
+                        const mask = Mask{ .colour = .blue, .index = 0 };
                         state.fighters.appendAssumeCapacity(fighter.getFighterStats(mask));
                         state.nextPhase();
                         break;

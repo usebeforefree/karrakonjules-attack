@@ -30,7 +30,7 @@ fn getRect(tex: rl.Texture2D) rl.Rectangle {
     };
 }
 
-fn drawScaled(tex: rl.Texture2D) void {
+fn drawFullscreenCentered(tex: rl.Texture2D) void {
     const sw: f32 = @floatFromInt(rl.getScreenWidth());
     const sh: f32 = @floatFromInt(rl.getScreenHeight());
 
@@ -41,10 +41,14 @@ fn drawScaled(tex: rl.Texture2D) void {
 
     const ratio = sh / th;
 
+    const center = sw / 2;
+
+    const target_width = tw * ratio;
+
     const screen_rect: rl.Rectangle = .{
-        .x = 0,
+        .x = center - target_width / 2,
         .y = 0,
-        .width = tw * ratio,
+        .width = target_width,
         .height = th * ratio,
     };
 
@@ -95,10 +99,8 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
 
         rl.clearBackground(.white);
-        //rl.drawTexture(menu_texture, 0, 0, .white);
-        //rl.drawTexturePro(menu_texture, rect, rect2, .{ .x = 0, .y = 0 }, 0, .white);
 
-        drawScaled(menu_texture);
+        drawFullscreenCentered(menu_texture);
 
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
 

@@ -199,6 +199,8 @@ pub const State = struct {
         };
         self.transition_bottom_texture.drawPro(getRect(self.transition_bottom_texture), bottom_dest, .{ .x = 0, .y = 0 }, 0, .white);
 
+        //drawSprite(self.transition_bottom_texture, state., y: f32, scale: f32, rot: f32)
+
         const top_dest = rl.Rectangle{
             .x = -spill_pixels_x,
             .y = top_y - spill_pixels_y,

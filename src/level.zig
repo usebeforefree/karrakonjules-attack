@@ -5,6 +5,7 @@ const rl = @import("raylib");
 const m = @import("main.zig");
 const Enemy = m.Enemy;
 const dtToMs = m.dtToMs;
+const Animation = m.Animation;
 
 var state = &m.state;
 
@@ -16,6 +17,36 @@ const player_height = 100;
 const enemy_x = 600;
 const enemy_y = 300;
 const healthbar_height = 50;
+
+fn renderDamageAnimation(animation: *const Animation, x: f32, y: f32, width: f32, height: f32) void {
+    if (animation.isPlaying()) {
+        const frame = animation.getCurrentFrame();
+        const dmg_tex = state.damage_textures[frame];
+        dmg_tex.drawPro(
+            m.getRect(dmg_tex),
+            .{ .x = x, .y = y, .width = width, .height = height },
+            .{ .x = 0, .y = 0 },
+            0,
+            rl.Color.white,
+        );
+    }
+}
+
+fn applyDamageEvent(entity: *m.Enemy) void {
+    entity.health, const of = @subWithOverflow(entity.health, entity.damage_to_take);
+    if (of == 1) {
+        entity.health = 0;
+    }
+    entity.damage_to_take = 0;
+}
+
+fn applyDamageEventFighter(entity: *m.FighterStats) void {
+    entity.health, const of = @subWithOverflow(entity.health, entity.damage_to_take);
+    if (of == 1) {
+        entity.health = 0;
+    }
+    entity.damage_to_take = 0;
+}
 
 pub const Level = struct {
     enemies: [10]?Enemy = @splat(null),
@@ -45,20 +76,10 @@ pub const Level = struct {
 
         // Draw damage animations on top (fighters then enemies)
         for (state.fighters.items, 0..) |fighter, idx| {
-            if (fighter.display_dmg_animation) {
-                const i: i32 = @intCast(idx);
-                const px = player_x - i * 30;
-                const py = player_y - i * 30;
-                const frame: usize = @min(fighter.dmg_animation_time / Enemy.dmg_frame_time, Enemy.dmg_frames - 1);
-                const dmg_tex = state.damage_textures[frame];
-                dmg_tex.drawPro(
-                    m.getRect(dmg_tex),
-                    .{ .x = @floatFromInt(px), .y = @floatFromInt(py), .width = 100, .height = 100 },
-                    .{ .x = 0, .y = 0 },
-                    0,
-                    rl.Color.white,
-                );
-            }
+            const i: i32 = @intCast(idx);
+            const px = player_x - i * 30;
+            const py = player_y - i * 30;
+            renderDamageAnimation(&fighter.damage_animation, @floatFromInt(px), @floatFromInt(py), 100, 100);
         }
 
         for (self.enemies, 0..) |e, idx| {
@@ -66,18 +87,8 @@ pub const Level = struct {
                 if (enemy.health == 0) {
                     continue;
                 }
-                if (enemy.display_dmg_animation) {
-                    const i: i32 = @intCast(idx);
-                    const frame: usize = @min(enemy.dmg_animation_time / Enemy.dmg_frame_time, Enemy.dmg_frames - 1);
-                    const dmg_tex = state.damage_textures[frame];
-                    dmg_tex.drawPro(
-                        m.getRect(dmg_tex),
-                        .{ .x = @floatFromInt(enemy_x + i * 30), .y = @floatFromInt(enemy_y - i * 30), .width = 100, .height = 100 },
-                        .{ .x = 0, .y = 0 },
-                        0,
-                        rl.Color.white,
-                    );
-                }
+                const i: i32 = @intCast(idx);
+                renderDamageAnimation(&enemy.damage_animation, @floatFromInt(enemy_x + i * 30), @floatFromInt(enemy_y - i * 30), 100, 100);
             }
         }
     }
@@ -90,19 +101,13 @@ pub const Level = struct {
                 if (enemy.health == 0) {
                     continue;
                 }
-                //enemy move
+                // Enemy move
                 enemy.x_val -= dt * enemy.speed;
-                if (enemy.display_dmg_animation) {
-                    enemy.dmg_animation_time += dtToMs(dt);
-                }
-                if (enemy.dmg_animation_time > Enemy.dmg_frame_time * Enemy.dmg_frames) {
-                    enemy.dmg_animation_time = 0;
-                    enemy.display_dmg_animation = false;
-                    enemy.health, const of = @subWithOverflow(enemy.health, enemy.damage_to_take);
-                    if (of == 1) {
-                        enemy.health = 0;
-                    }
-                    enemy.damage_to_take = 0;
+
+                // Update damage animation and handle events
+                const dmg_event = enemy.damage_animation.update(dtToMs(dt));
+                if (dmg_event == .apply_damage) {
+                    applyDamageEvent(enemy);
                 }
 
                 if (closest_enemy == null) {
@@ -111,38 +116,32 @@ pub const Level = struct {
                     closest_enemy = enemy;
                 }
 
-                // enemy attack
+                // Enemy attack
                 if (enemy.range > enemy.x_val) {
                     enemy.attack_buffer += dtToMs(dt);
                     if (enemy.attack_buffer >= enemy.attack_speed_ms) {
                         enemy.attack_buffer -= enemy.attack_speed_ms;
                         std.log.debug("enemy attack\n", .{});
-                        // apply damage to first fighter (simple behaviour)
+                        // Apply damage to first fighter (simple behaviour)
                         if (state.fighters.items.len > 0) {
                             var target = &state.fighters.items[0];
                             target.damage_to_take = enemy.damage;
-                            target.display_dmg_animation = true;
-                            target.dmg_animation_time = 0;
+                            target.damage_animation.start();
                         }
                     }
                 }
             }
         }
-        // Progress fighter damage animations and apply damage when finished
+
+        // Update fighter damage animations and handle events
         for (state.fighters.items) |*f| {
-            if (f.display_dmg_animation) {
-                f.dmg_animation_time += dtToMs(dt);
-                if (f.dmg_animation_time > Enemy.dmg_frame_time * Enemy.dmg_frames) {
-                    f.dmg_animation_time = 0;
-                    f.display_dmg_animation = false;
-                    f.health, const of = @subWithOverflow(f.health, f.damage_to_take);
-                    if (of == 1) {
-                        f.health = 0;
-                    }
-                    f.damage_to_take = 0;
-                }
+            const dmg_event = f.damage_animation.update(dtToMs(dt));
+            if (dmg_event == .apply_damage) {
+                applyDamageEventFighter(f);
             }
         }
+
+        // Fighter attacks
         for (state.fighters.items) |*f| {
             if (closest_enemy) |enemy| {
                 if (f.range >= enemy.x_val) {
@@ -151,7 +150,7 @@ pub const Level = struct {
                         f.attack_time_buffer -= f.attack_speed_ms;
                         std.log.debug("Player attack\n", .{});
                         enemy.damage_to_take = f.damage;
-                        enemy.display_dmg_animation = true;
+                        enemy.damage_animation.start();
                     }
                 }
             }

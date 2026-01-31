@@ -4,6 +4,62 @@ const perlin = @import("perlin.zig");
 const rg = @import("raygui");
 const Level = @import("level.zig").Level;
 
+pub const AnimationEvent = enum {
+    none,
+    apply_damage,
+};
+
+pub const Animation = struct {
+    time_elapsed: usize = 0,
+    frame_time: usize,
+    total_frames: usize,
+    is_active: bool = false,
+    event: AnimationEvent = .none,
+
+    const Self = @This();
+
+    pub fn init(frame_time: usize, total_frames: usize, event: AnimationEvent) Self {
+        return .{
+            .frame_time = frame_time,
+            .total_frames = total_frames,
+            .event = event,
+        };
+    }
+
+    pub fn start(self: *Self) void {
+        self.is_active = true;
+        self.time_elapsed = 0;
+    }
+
+    pub fn update(self: *Self, dt_ms: usize) AnimationEvent {
+        if (!self.is_active) return .none;
+        self.time_elapsed += dt_ms;
+
+        if (self.isFinished()) {
+            self.is_active = false;
+            return self.event;
+        }
+        return .none;
+    }
+
+    pub fn getCurrentFrame(self: *const Self) usize {
+        return @min(self.time_elapsed / self.frame_time, self.total_frames - 1);
+    }
+
+    pub fn isFinished(self: *const Self) bool {
+        return self.time_elapsed >= self.frame_time * self.total_frames;
+    }
+
+    pub fn isPlaying(self: *const Self) bool {
+        return self.is_active;
+    }
+
+    pub fn reset(self: *Self) void {
+        self.time_elapsed = 0;
+        self.is_active = false;
+    }
+};
+
 pub const Enemy = struct {
     range: f64,
     max_health: usize,
@@ -15,8 +71,7 @@ pub const Enemy = struct {
     x_val: f64 = 100,
 
     damage_to_take: usize = 0,
-    display_dmg_animation: bool = false,
-    dmg_animation_time: usize = 0,
+    damage_animation: Animation = Animation.init(100, 8, .apply_damage),
 
     pub const dmg_frame_time = 100;
     pub const dmg_frames = 8;
@@ -134,7 +189,7 @@ const Fighter = enum {
     }
 };
 
-const FighterStats = struct {
+pub const FighterStats = struct {
     name: []const u8,
     health: usize,
     max_health: usize,
@@ -144,10 +199,8 @@ const FighterStats = struct {
     range: f64,
     mask: Mask,
 
-    // Damage animation/state
     damage_to_take: usize = 0,
-    display_dmg_animation: bool = false,
-    dmg_animation_time: usize = 0,
+    damage_animation: Animation = Animation.init(100, 8, .apply_damage),
 };
 
 const Mask = struct {

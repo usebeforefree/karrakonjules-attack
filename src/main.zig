@@ -3,16 +3,18 @@ const rl = @import("raylib");
 const perlin = @import("perlin.zig");
 const rg = @import("raygui");
 
-const State = struct {
+pub const State = struct {
     const GameState = enum {
         intro,
-        game,
+        shop1,
+        level1,
+        cutscene1,
         outro,
     };
 
-    var phase: GameState = .intro;
-    pub fn nextPhase() void {
-        State.phase = std.meta.intToEnum(GameState, @intFromEnum(State.phase) + 1) catch State.phase;
+    phase: GameState = .intro,
+    pub fn nextPhase(self: *State) void {
+        self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
     }
 };
 
@@ -64,9 +66,9 @@ pub fn main() anyerror!void {
 
         if (debug_mode) {
             if (rg.button(.{ .height = 35, .width = 200, .x = 10, .y = 10 }, "Next phase")) {
-                State.nextPhase();
+                state.nextPhase();
             }
-            _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(State.phase));
+            _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(state.phase));
         }
     }
 }

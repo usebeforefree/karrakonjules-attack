@@ -1,11 +1,23 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+const State = struct {
+    const GameState = enum {
+        intro,
+        game,
+        outro,
+    };
+
+    var phase: GameState = .intro;
+};
+
+var state: State = .{};
+
 pub fn main() anyerror!void {
     const screenWidth = 800;
     const screenHeight = 450;
 
-    rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    rl.initWindow(screenWidth, screenHeight, "Karrankonjules attack!");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
@@ -14,8 +26,8 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(.sky_blue);
+        rl.clearBackground(.white);
 
-        rl.drawText("Karrakonjules attack!", 190, 200, 20, .maroon);
+        rl.drawText("Karrakonjules attack!", 20, 20, 100, .black);
     }
 }

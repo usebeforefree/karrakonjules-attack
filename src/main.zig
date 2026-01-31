@@ -59,17 +59,30 @@ pub const State = struct {
         }
     }
 
+    fn loadKarrakonjulaTextures(self: *State) !void {
+        inline for (0..karrakonjules_num) |i| {
+            const karrakonjula_texture = try rl.loadTexture(
+                std.fmt.comptimePrint("assets/karrakonjules/karrakonjula_{}.png", .{i + 1}),
+            );
+
+            self.karrakonjula_textures[i] = karrakonjula_texture;
+        }
+    }
+
+    const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
+    var fighters_buf: [fighter_num]FighterStats = undefined;
     // num of different masks per colour
     const mask_index_num = 4;
     const mask_num = @typeInfo(MaskColour).@"enum".fields.len * mask_index_num;
     var masks_buf: [mask_num]Mask = undefined;
 
-    const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
-    var fighters_buf: [fighter_num]FighterStats = undefined;
+    const karrakonjules_num = 3;
+
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
     fighter_textures: [fighter_num]rl.Texture2D = undefined,
     mask_textures: [mask_num]rl.Texture2D = undefined,
     damage_textures: [Enemy.dmg_frames]rl.Texture2D = undefined,
+    karrakonjula_textures: [karrakonjules_num]rl.Texture2D = undefined,
 
     scale: f32 = undefined,
 
@@ -224,6 +237,7 @@ pub fn main() anyerror!void {
     try state.loadFighterTextures();
     try state.loadMaskTextures();
     try state.loadDamageTextures();
+    try state.loadKarrakonjulaTextures();
 
     level1.enemies[0] = Enemy{
         .attack_speed_ms = 2000,

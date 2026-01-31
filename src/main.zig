@@ -13,6 +13,7 @@ pub const Enemy = struct {
 pub const State = struct {
     const GameState = enum {
         intro,
+        chose_fighter,
         shop1,
         level1,
         cutscene1,
@@ -28,7 +29,7 @@ pub const State = struct {
     }
 };
 
-pub var state: State = .{ .phase = .level1 };
+pub var state: State = .{};
 pub var debug_mode: bool = true;
 pub var level1 = Level{};
 
@@ -154,7 +155,7 @@ pub fn main() anyerror!void {
                 level1.update(0.0);
             },
             else => {
-                std.log.debug("Main loop update not implemented for phase: {t}", .{state.phase});
+                // std.log.debug("Main loop update not implemented for phase: {t}", .{state.phase});
             },
         }
         rl.beginDrawing();
@@ -162,35 +163,39 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(.white);
 
-        drawFullscreenCentered(menu_texture);
-
-        rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
-
-        inline for (@typeInfo(Fighter).@"enum".fields, 0..) |fighter, i| {
-            if (rg.button(
-                .{
-                    .height = 100,
-                    .width = 100,
-                    .x = 100 + 100 * i,
-                    .y = 100,
-                },
-                fighter.name,
-            )) {
-                state.fighters.appendAssumeCapacity(std.meta.stringToEnum(Fighter, fighter.name).?.getFighterStats());
-                break;
-            }
-        }
-
         switch (state.phase) {
+            .intro => {
+                rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
+
+                rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
+            },
             .level1 => {
                 level1.render();
+            },
+            .chose_fighter => {
+                drawFullscreenCentered(menu_texture);
+
+                rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
+
+                inline for (@typeInfo(Fighter).@"enum".fields, 0..) |fighter, i| {
+                    if (rg.button(
+                        .{
+                            .height = 100,
+                            .width = 100,
+                            .x = 100 + 100 * i,
+                            .y = 100,
+                        },
+                        fighter.name,
+                    )) {
+                        state.fighters.appendAssumeCapacity(std.meta.stringToEnum(Fighter, fighter.name).?.getFighterStats());
+                        break;
+                    }
+                }
             },
             else => {
                 std.log.debug("Main loop render not implemented for phase: {t}", .{state.phase});
             },
         }
-
-        rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
 
         if (debug_mode) {
             if (rg.button(.{ .height = 35, .width = 200, .x = 10, .y = 10 }, "Next phase")) {
@@ -198,7 +203,5 @@ pub fn main() anyerror!void {
             }
             _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(state.phase));
         }
-
-        rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
     }
 }

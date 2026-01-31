@@ -288,12 +288,11 @@ pub fn main() anyerror!void {
         const time: f32 = @floatCast(rl.getTime());
         const dt = time - last_frame_time;
         last_frame_time = time;
-        const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
 
         const heightRatio: f32 = screenh / @as(f32, @floatFromInt(baseHeight));
         state.scale = heightRatio;
 
-        const horizontal_middle: f32 = baseWidth / 2;
+        const horizontal_middle: f32 = screenw / 2 / state.scale;
 
         std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
 
@@ -317,17 +316,17 @@ pub fn main() anyerror!void {
 
         switch (state.phase) {
             .intro => {
-                rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
-
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
 
-                //drawFullscreenCentered(menu_texture);
-                drawFullscreenCentered(village);
+                drawSprite(village, horizontal_middle, 500, 1, 0);
 
-                drawSprite(sun_rays, screenw / 2 * state.scale, 160, 0.7, time * 10);
+                drawSprite(sun_rays, horizontal_middle, 160, 0.7, time * 10);
 
                 const cloud_1_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 34.5, .z = 345.3 });
                 drawSprite(cloud, horizontal_middle - 400, 100, 1, cloud_1_noise * 15);
+
+                const cloud_2_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 134.5, .z = 245.3 });
+                drawSprite(cloud, horizontal_middle + 400, 100, 1, cloud_2_noise * 15);
             },
             .level1 => {
                 level1.render();

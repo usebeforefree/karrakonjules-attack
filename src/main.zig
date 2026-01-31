@@ -139,7 +139,7 @@ pub const State = struct {
     damage_textures: [Enemy.dmg_frames]rl.Texture2D = undefined,
     karrakonjula_textures: [karrakonjules_num]rl.Texture2D = undefined,
 
-    scale: f32 = undefined,
+    scale: f32 = 1,
 
     phase: GameState = .intro,
     pub fn nextPhase(self: *State) void {
@@ -423,11 +423,15 @@ pub fn main() anyerror!void {
                     const fighter_int = @intFromEnum(fighter);
                     const fighter_texture = state.fighter_textures[fighter_int];
 
+                    const button_space_width: f32 = 800;
+                    const button_width: f32 = 200;
+                    const buttons_count = state.fighter_textures.len;
+
                     const button_rect = rl.Rectangle{
-                        .x = horizontal_middle + 150 * @as(f32, @floatFromInt(fighter_int)),
-                        .y = 150,
-                        .width = 120,
-                        .height = 120,
+                        .x = (horizontal_middle - button_space_width / 2 + button_space_width * toF(fighter_int) / buttons_count) * state.scale,
+                        .y = 300 * state.scale,
+                        .width = button_width * state.scale,
+                        .height = button_width * state.scale,
                     };
 
                     const is_hovered = rl.checkCollisionPointRec(mouse_pos, button_rect);

@@ -72,6 +72,7 @@ pub const Enemy = struct {
     attack_speed_ms: usize,
     attack_buffer: usize = 0,
     x_val: f64 = 100,
+    sprite_id: usize = 0,
 
     damage_to_take: usize = 0,
     damage_animation: Animation = Animation.init(DMG_ANIMATION_FRAME_TIME, DMG_ANIMATION_FRAMES, .apply_damage),
@@ -348,6 +349,17 @@ pub fn drawSprite(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void 
     tex.drawPro(getRect(tex), rect, pivot, rot, .white);
 }
 
+pub fn drawSpriteTint(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32, tint: rl.Color) void {
+    const rect = getScaledRect(x, y, toF(tex.width), toF(tex.height), scale);
+
+    const pivot: rl.Vector2 = .{
+        .x = toF(tex.width) / 2 * state.scale * scale,
+        .y = toF(tex.height) / 2 * state.scale * scale,
+    };
+
+    tex.drawPro(getRect(tex), rect, pivot, rot, tint);
+}
+
 pub fn dtToMs(dt: f64) usize {
     return @intFromFloat(dt * 1000);
 }
@@ -392,6 +404,7 @@ pub fn main() anyerror!void {
         .speed = 10,
         .health = 100,
         .max_health = 100,
+        .sprite_id = 1,
     };
     const rect: rl.Rectangle = .{
         .x = 0,

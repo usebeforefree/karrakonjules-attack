@@ -6,6 +6,8 @@ const m = @import("main.zig");
 const Enemy = m.Enemy;
 const dtToMs = m.dtToMs;
 const Animation = m.Animation;
+const drawSprite = m.drawSprite;
+const drawSpriteTint = m.drawSpriteTint;
 
 var state = &m.state;
 
@@ -17,20 +19,25 @@ const player_height = 100;
 const enemy_x = 600;
 const enemy_y = 300;
 const healthbar_height = 50;
+const PLAYER_OFFSET = 70;
 
 const DAMANGE_ANIMATION_SIZE = 100;
 
 fn renderDamageAnimation(animation: *const Animation, x: f32, y: f32, width: f32, height: f32) void {
+    _ = width; // autofix
+    _ = height; // autofix
+    // TODO scale to width and height
     if (animation.isPlaying()) {
         const frame = animation.getCurrentFrame();
         const dmg_tex = state.damage_textures[frame];
-        dmg_tex.drawPro(
-            m.getRect(dmg_tex),
-            .{ .x = x, .y = y, .width = width, .height = height },
-            .{ .x = 0, .y = 0 },
-            0,
-            rl.Color.white,
-        );
+        drawSpriteTint(dmg_tex, x, y, 0.1, 0, rl.Color.red);
+        // dmg_tex.drawPro(
+        //     m.getRect(dmg_tex),
+        //     .{ .x = x, .y = y, .width = width, .height = height },
+        //     .{ .x = 0, .y = 0 },
+        //     0,
+        //     rl.Color.white,
+        // );
     }
 }
 
@@ -70,11 +77,12 @@ pub const Level = struct {
     const Self = @This();
 
     pub fn render(self: *Self) void {
+        // DRAW fighters with healthbars
         for (state.fighters.items, 0..) |fighter, idx| {
             if (fighter.health == 0) continue;
             const i: i32 = @intCast(idx);
-            const px = player_x - i * 30;
-            const py = player_y - i * 30;
+            const px = player_x - i * PLAYER_OFFSET;
+            const py = player_y - i * PLAYER_OFFSET;
             rl.drawRectangle(px, py, 100, 100, rl.Color.yellow);
             drawHealthBar(px + player_width + 10, py, 10, healthbar_height, fighter.health, fighter.max_health);
         }
@@ -85,8 +93,12 @@ pub const Level = struct {
                     continue;
                 }
                 const i: i32 = @intCast(idx);
-                rl.drawRectangle(enemy_x + i * 30, enemy_y - i * 30, 100, 100, rl.Color.blue);
-                drawHealthBar(enemy_x + i * 30 - 20, enemy_y - i * 30 - 20, 10, healthbar_height, enemy.health, enemy.max_health);
+                const px: f32 = @floatFromInt(enemy_x + i * PLAYER_OFFSET);
+                const py: f32 = @floatFromInt(enemy_y + i * PLAYER_OFFSET);
+                std.log.debug("px {d} py{d}", .{ px, py });
+                // rl.drawRectangle(px, py, 100, 100, rl.Color.blue);
+                drawSprite(state.karrakonjula_textures[enemy.sprite_id], px, py, 0.4, 0);
+                drawHealthBar(@intFromFloat(px * state.scale), @intFromFloat(py * state.scale), 10, healthbar_height, enemy.health, enemy.max_health);
             }
         }
 

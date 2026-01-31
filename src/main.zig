@@ -10,21 +10,12 @@ pub fn main() anyerror!void {
 
     rl.setTargetFPS(60);
 
-    // Main game loop
     while (!rl.windowShouldClose()) {
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
-
-        // Draw
-        //----------------------------------------------------------------------------------
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(.white);
 
         rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
-        //----------------------------------------------------------------------------------
     }
 }

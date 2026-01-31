@@ -6,7 +6,6 @@ pub fn main() anyerror!void {
     const screenHeight = 450;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
-    rl.toggleFullscreen();
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
@@ -15,8 +14,8 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(.white);
+        rl.clearBackground(.sky_blue);
 
-        rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
+        rl.drawText("Karrakonjules attack!", 190, 200, 20, .maroon);
     }
 }

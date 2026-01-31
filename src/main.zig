@@ -4,10 +4,15 @@ const perlin = @import("perlin.zig");
 const rg = @import("raygui");
 const Level = @import("level.zig").Level;
 
-// atck range, atack speed, speed
 pub const Enemy = struct {
-    fireRate: u32,
-    range: u32,
+    range: f64,
+    max_health: usize,
+    health: usize,
+    damage: usize,
+    speed: f64,
+    attack_speed_ms: usize,
+    attack_buffer: usize = 0,
+    x_val: f64 = 100,
 };
 
 pub const State = struct {
@@ -136,6 +141,10 @@ pub fn drawSpriteCentered(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f3
     );
 }
 
+pub fn dtToMs(dt: f64) usize {
+    return @intFromFloat(dt * 1000);
+}
+
 pub fn main() anyerror!void {
     const screenWidth = 800;
     const screenHeight = 450;
@@ -152,8 +161,22 @@ pub fn main() anyerror!void {
     const sun_rays = try rl.loadTexture("assets/sun_rays.png");
     try state.loadFighterTextures();
 
-    level1.enemies[0] = Enemy{ .fireRate = 10, .range = 5 };
-    level1.enemies[1] = Enemy{ .fireRate = 10, .range = 5 };
+    level1.enemies[0] = Enemy{
+        .attack_speed_ms = 2000,
+        .range = 100,
+        .damage = 10,
+        .speed = 10,
+        .health = 100,
+        .max_health = 100,
+    };
+    level1.enemies[0] = Enemy{
+        .attack_speed_ms = 2400,
+        .range = 100,
+        .damage = 10,
+        .speed = 10,
+        .health = 100,
+        .max_health = 100,
+    };
     const rect: rl.Rectangle = .{
         .x = 0,
         .y = 0,
@@ -163,10 +186,22 @@ pub fn main() anyerror!void {
 
     _ = rect;
 
+    const screen_rect: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(rl.getScreenWidth()),
+        .height = @floatFromInt(rl.getRenderHeight()),
+    };
+
+    _ = screen_rect;
+
+    var last_frame_time = rl.getTime();
     while (!rl.windowShouldClose()) {
         const screenw: f32 = @floatFromInt(rl.getScreenWidth());
         // const screenh: f32 = @floatFromInt(rl.getScreenHeight());
         const time: f32 = @floatCast(rl.getTime());
+        const dt = time - last_frame_time;
+        last_frame_time = time;
         const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
 
         // INPUT
@@ -176,7 +211,7 @@ pub fn main() anyerror!void {
 
         switch (state.phase) {
             .level1 => {
-                level1.update(0.0);
+                level1.update(dt);
             },
             else => {
                 // std.log.debug("Main loop update not implemented for phase: {t}", .{state.phase});

@@ -161,6 +161,14 @@ fn drawFullscreenCentered(tex: rl.Texture2D) void {
     tex.drawPro(getRect(tex), screen_rect, .{ .x = 0, .y = 0 }, 0, .white);
 }
 
+fn getScreenX(x: f32) f32 {
+    return x * state.scale;
+}
+
+fn getScreenY(y: f32) f32 {
+    return y * state.scale;
+}
+
 // Pivot is at center
 pub fn drawSprite(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void {
     const rect: rl.Rectangle = .{

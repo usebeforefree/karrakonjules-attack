@@ -6,6 +6,7 @@ pub fn main() anyerror!void {
     const screenHeight = 450;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - basic window");
+    rl.toggleFullscreen();
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);

@@ -34,9 +34,10 @@ pub const State = struct {
         }
     }
 
-    var fighters_buf: [10]FighterStats = undefined;
+    const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
+    var fighters_buf: [fighter_num]FighterStats = undefined;
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
-    fighter_textures: [@typeInfo(Fighter).@"enum".fields.len]rl.Texture2D = undefined,
+    fighter_textures: [fighter_num]rl.Texture2D = undefined,
 
     phase: GameState = .intro,
     pub fn nextPhase(self: *State) void {
@@ -53,7 +54,7 @@ const Fighter = enum {
     fast,
     smart,
 
-    pub fn getFighterStats(self: Fighter) FighterStats {
+    pub fn getFighterStats(self: Fighter, mask: Mask) FighterStats {
         return switch (self) {
             .strong => .{
                 .name = @tagName(self),
@@ -61,6 +62,7 @@ const Fighter = enum {
                 .damage = 20,
                 .attack_speed_ms = 3000,
                 .range = 45,
+                .mask = mask,
             },
             .fast => .{
                 .name = @tagName(self),
@@ -68,6 +70,7 @@ const Fighter = enum {
                 .damage = 10,
                 .attack_speed_ms = 1500,
                 .range = 60,
+                .mask = mask,
             },
             .smart => .{
                 .name = @tagName(self),
@@ -75,6 +78,7 @@ const Fighter = enum {
                 .damage = 10,
                 .attack_speed_ms = 2250,
                 .range = 75,
+                .mask = mask,
             },
         };
     }
@@ -86,6 +90,15 @@ const FighterStats = struct {
     damage: usize,
     attack_speed_ms: usize,
     range: usize,
+    mask: Mask,
+};
+
+const Mask = enum {
+    red,
+    blue,
+    green,
+    purple,
+    yellow,
 };
 
 fn getRect(tex: rl.Texture2D) rl.Rectangle {
@@ -266,7 +279,9 @@ pub fn main() anyerror!void {
                     rl.drawText(fighter_name, @intFromFloat(button_rect.x + (button_rect.width - @as(f32, @floatFromInt(name_width))) / 2), @intFromFloat(button_rect.y + button_rect.height - 25), 16, .black);
 
                     if (is_clicked) {
-                        state.fighters.appendAssumeCapacity(fighter.getFighterStats());
+                        // choose mask...
+                        const mask = Mask.blue;
+                        state.fighters.appendAssumeCapacity(fighter.getFighterStats(mask));
                         state.nextPhase();
                         break;
                     }

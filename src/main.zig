@@ -23,6 +23,22 @@ pub fn main() anyerror!void {
 
     rl.setTargetFPS(60);
 
+    const menu_texture = try rl.loadTexture("assets/menu_day.png");
+
+    const rect: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(menu_texture.width),
+        .height = @floatFromInt(menu_texture.height),
+    };
+
+    const rect2: rl.Rectangle = .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(rl.getScreenWidth()),
+        .height = @floatFromInt(rl.getRenderHeight()),
+    };
+
     while (!rl.windowShouldClose()) {
         const time: f32 = @floatCast(rl.getTime());
         const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
@@ -31,6 +47,8 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
 
         rl.clearBackground(.white);
+        rl.drawTexture(menu_texture, 0, 0, .white);
+        rl.drawTexturePro(menu_texture, rect, rect2, .{ .x = 0, .y = 0 }, 0, .white);
 
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
     }

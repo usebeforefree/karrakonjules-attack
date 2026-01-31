@@ -13,14 +13,21 @@ pub const Enemy = struct {
     attack_speed_ms: usize,
     attack_buffer: usize = 0,
     x_val: f64 = 100,
+
+    damage_to_take: usize = 0,
+    display_dmg_animation: bool = false,
+    dmg_animation_time: usize = 0,
+
+    pub const dmg_frame_time = 100;
+    pub const dmg_frames = 8;
 };
 
 pub const State = struct {
     const GameState = enum {
         intro,
         chose_fighter,
-        shop1,
         level1,
+        shop1,
         cutscene1,
         outro,
     };
@@ -31,6 +38,11 @@ pub const State = struct {
             const fighter_texture = try rl.loadTexture(std.fmt.comptimePrint("assets/bodies/{s}.png", .{fighter_name}));
 
             self.fighter_textures[i] = fighter_texture;
+        }
+    }
+    fn loadDamageTextures(self: *State) !void {
+        inline for (0..Enemy.dmg_frames) |i| {
+            self.damage_textures[i] = try rl.loadTexture(std.fmt.comptimePrint("assets/dmg_effect/dmg_{d}.png", .{i + 1}));
         }
     }
 
@@ -47,16 +59,30 @@ pub const State = struct {
         }
     }
 
+    fn loadKarrakonjulaTextures(self: *State) !void {
+        inline for (0..karrakonjules_num) |i| {
+            const karrakonjula_texture = try rl.loadTexture(
+                std.fmt.comptimePrint("assets/karrakonjules/karrakonjula_{}.png", .{i + 1}),
+            );
+
+            self.karrakonjula_textures[i] = karrakonjula_texture;
+        }
+    }
+
+    const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
+    var fighters_buf: [fighter_num]FighterStats = undefined;
     // num of different masks per colour
     const mask_index_num = 4;
     const mask_num = @typeInfo(MaskColour).@"enum".fields.len * mask_index_num;
     var masks_buf: [mask_num]Mask = undefined;
 
-    const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
-    var fighters_buf: [fighter_num]FighterStats = undefined;
+    const karrakonjules_num = 3;
+
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
     fighter_textures: [fighter_num]rl.Texture2D = undefined,
     mask_textures: [mask_num]rl.Texture2D = undefined,
+    damage_textures: [Enemy.dmg_frames]rl.Texture2D = undefined,
+    karrakonjula_textures: [karrakonjules_num]rl.Texture2D = undefined,
 
     scale: f32 = undefined,
 
@@ -80,6 +106,7 @@ const Fighter = enum {
             .strong => .{
                 .name = @tagName(self),
                 .health = 110,
+                .max_health = 110,
                 .damage = 20,
                 .attack_speed_ms = 3000,
                 .range = 45,
@@ -88,6 +115,7 @@ const Fighter = enum {
             .fast => .{
                 .name = @tagName(self),
                 .health = 100,
+                .max_health = 100,
                 .damage = 10,
                 .attack_speed_ms = 1500,
                 .range = 60,
@@ -96,6 +124,7 @@ const Fighter = enum {
             .smart => .{
                 .name = @tagName(self),
                 .health = 90,
+                .max_health = 90,
                 .damage = 10,
                 .attack_speed_ms = 2250,
                 .range = 75,
@@ -108,10 +137,17 @@ const Fighter = enum {
 const FighterStats = struct {
     name: []const u8,
     health: usize,
+    max_health: usize,
     damage: usize,
     attack_speed_ms: usize,
-    range: usize,
+    attack_time_buffer: usize = 0,
+    range: f64,
     mask: Mask,
+
+    // Damage animation/state
+    damage_to_take: usize = 0,
+    display_dmg_animation: bool = false,
+    dmg_animation_time: usize = 0,
 };
 
 const Mask = struct {
@@ -127,7 +163,7 @@ const MaskColour = enum {
     yellow,
 };
 
-fn getRect(tex: rl.Texture2D) rl.Rectangle {
+pub fn getRect(tex: rl.Texture2D) rl.Rectangle {
     return .{
         .x = 0,
         .y = 0,
@@ -190,10 +226,6 @@ pub fn dtToMs(dt: f64) usize {
     return @intFromFloat(dt * 1000);
 }
 
-pub fn toF(i: i32) f32 {
-    return @floatFromInt(i);
-}
-
 pub fn main() anyerror!void {
     const baseWidth = 1280;
     const baseHeight = 720;
@@ -212,6 +244,8 @@ pub fn main() anyerror!void {
     const cloud = try rl.loadTexture("assets/clouds/cloud_1.png");
     try state.loadFighterTextures();
     try state.loadMaskTextures();
+    try state.loadDamageTextures();
+    try state.loadKarrakonjulaTextures();
 
     level1.enemies[0] = Enemy{
         .attack_speed_ms = 2000,
@@ -221,7 +255,7 @@ pub fn main() anyerror!void {
         .health = 100,
         .max_health = 100,
     };
-    level1.enemies[0] = Enemy{
+    level1.enemies[1] = Enemy{
         .attack_speed_ms = 2400,
         .range = 100,
         .damage = 10,
@@ -254,13 +288,14 @@ pub fn main() anyerror!void {
         const time: f32 = @floatCast(rl.getTime());
         const dt = time - last_frame_time;
         last_frame_time = time;
+        const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
 
         const heightRatio: f32 = screenh / @as(f32, @floatFromInt(baseHeight));
         state.scale = heightRatio;
 
-        const horizontal_middle: f32 = screenw / 2 / heightRatio;
+        const horizontal_middle: f32 = baseWidth / 2;
 
-        // std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
+        std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
 
         // INPUT
         if (rl.isKeyPressed(.tab)) {
@@ -282,21 +317,17 @@ pub fn main() anyerror!void {
 
         switch (state.phase) {
             .intro => {
-                //rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
+                rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
 
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
 
                 //drawFullscreenCentered(menu_texture);
-                //drawFullscreenCentered(village);
-                drawSprite(village, horizontal_middle, toF(baseHeight) - 300 / 2, 1, 0);
+                drawFullscreenCentered(village);
 
-                drawSprite(sun_rays, horizontal_middle, 170, 0.7, time * 10);
+                drawSprite(sun_rays, screenw / 2 * state.scale, 160, 0.7, time * 10);
 
                 const cloud_1_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 34.5, .z = 345.3 });
                 drawSprite(cloud, horizontal_middle - 400, 100, 1, cloud_1_noise * 15);
-
-                const cloud_2_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 368.5, .z = 123.3 });
-                drawSprite(cloud, horizontal_middle + 400, 100, 1, cloud_2_noise * 15);
             },
             .level1 => {
                 level1.render();

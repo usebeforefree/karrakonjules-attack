@@ -12,6 +12,9 @@ pub const State = struct {
         outro,
     };
 
+    var fighters_buf: [10]FighterStats = undefined;
+    fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
+
     phase: GameState = .intro,
     pub fn nextPhase(self: *State) void {
         self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
@@ -20,6 +23,46 @@ pub const State = struct {
 
 var state: State = .{};
 var debug_mode: bool = true;
+
+const Fighter = enum {
+    strong,
+    fast,
+    smart,
+
+    pub fn getFighterStats(self: Fighter) FighterStats {
+        return switch (self) {
+            .strong => .{
+                .name = @tagName(self),
+                .health = 110,
+                .damage = 20,
+                .attack_speed_ms = 3000,
+                .range = 45,
+            },
+            .fast => .{
+                .name = @tagName(self),
+                .health = 100,
+                .damage = 10,
+                .attack_speed_ms = 1500,
+                .range = 60,
+            },
+            .smart => .{
+                .name = @tagName(self),
+                .health = 90,
+                .damage = 10,
+                .attack_speed_ms = 2250,
+                .range = 75,
+            },
+        };
+    }
+};
+
+const FighterStats = struct {
+    name: []const u8,
+    health: usize,
+    damage: usize,
+    attack_speed_ms: usize,
+    range: usize,
+};
 
 pub fn main() anyerror!void {
     const screenWidth = 800;
@@ -62,6 +105,12 @@ pub fn main() anyerror!void {
         rl.drawTexture(menu_texture, 0, 0, .white);
         rl.drawTexturePro(menu_texture, rect, rect2, .{ .x = 0, .y = 0 }, 0, .white);
 
+        rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
+
+        inline for (@typeInfo(Fighter).@"enum".fields) |fighter| {
+            std.debug.print("{any}", .{fighter});
+        }
+
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
 
         if (debug_mode) {
@@ -70,5 +119,7 @@ pub fn main() anyerror!void {
             }
             _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(state.phase));
         }
+
+        rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
     }
 }

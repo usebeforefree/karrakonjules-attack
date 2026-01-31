@@ -147,8 +147,19 @@ pub fn main() anyerror!void {
 
         rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
 
-        inline for (@typeInfo(Fighter).@"enum".fields) |fighter| {
-            std.debug.print("{any}", .{fighter});
+        inline for (@typeInfo(Fighter).@"enum".fields, 0..) |fighter, i| {
+            if (rg.button(
+                .{
+                    .height = 100,
+                    .width = 100,
+                    .x = 100 + 100 * i,
+                    .y = 100,
+                },
+                fighter.name,
+            )) {
+                state.fighters.appendAssumeCapacity(std.meta.stringToEnum(Fighter, fighter.name).?.getFighterStats());
+                break;
+            }
         }
 
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);

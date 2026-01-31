@@ -95,6 +95,7 @@ pub const State = struct {
             self.fighter_textures[i] = fighter_texture;
         }
     }
+
     fn loadDamageTextures(self: *State) !void {
         inline for (0..DMG_ANIMATION_FRAMES) |i| {
             self.damage_textures[i] = try rl.loadTexture(std.fmt.comptimePrint("assets/dmg_effect/dmg_{d}.png", .{i + 1}));
@@ -124,6 +125,11 @@ pub const State = struct {
         }
     }
 
+    fn loadTransitionTextures(self: *State) !void {
+        self.transition_top_texture = try rl.loadTexture("assets/transition/transition_1.png");
+        self.transition_bottom_texture = try rl.loadTexture("assets/transition/transition_2.png");
+    }
+
     const fighter_num = @typeInfo(Fighter).@"enum".fields.len;
     var fighters_buf: [fighter_num]FighterStats = undefined;
     // num of different masks per colour
@@ -138,12 +144,67 @@ pub const State = struct {
     mask_textures: [mask_num]rl.Texture2D = undefined,
     damage_textures: [DMG_ANIMATION_FRAMES]rl.Texture2D = undefined,
     karrakonjula_textures: [karrakonjules_num]rl.Texture2D = undefined,
+    transition_top_texture: rl.Texture2D = undefined,
+    transition_bottom_texture: rl.Texture2D = undefined,
+    transition_progress: f32 = 0.0,
+    transition: bool = false,
+    rising: bool = false,
 
     scale: f32 = 1,
 
     phase: GameState = .intro,
-    pub fn nextPhase(self: *State) void {
-        self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
+    pub fn triggerNextPhaseTransition(self: *State) void {
+        self.transition = true;
+        self.rising = true;
+    }
+
+    pub fn updateTransition(self: *State, dt: f32) void {
+        if (!self.transition) return;
+
+        if (self.rising) {
+            if (self.transition_progress < 1.0) {
+                self.transition_progress += dt * 1.0;
+                return;
+            } else {
+                self.rising = false;
+                self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
+            }
+        }
+
+        self.transition_progress -= dt * 1.0;
+
+        if (self.transition_progress < 0.0) {
+            self.transition_progress = 0.0;
+            self.transition = false;
+        }
+    }
+
+    pub fn renderTransition(self: *State) void {
+        const screenw: f32 = @floatFromInt(rl.getScreenWidth());
+        const screenh: f32 = @floatFromInt(rl.getScreenHeight());
+        const top_height: f32 = @floatFromInt(self.transition_top_texture.height);
+        const bottom_height: f32 = @floatFromInt(self.transition_bottom_texture.height);
+        const overlap: f32 = 150;
+        const spill_pixels_x: f32 = 120;
+        const spill_pixels_y: f32 = 170;
+        const top_y = -top_height + ((top_height + overlap) * self.transition_progress);
+        const bottom_y = screenh - ((bottom_height + overlap) * self.transition_progress);
+
+        const bottom_dest = rl.Rectangle{
+            .x = -spill_pixels_x,
+            .y = bottom_y - spill_pixels_y,
+            .width = screenw + (spill_pixels_x * 2),
+            .height = bottom_height + (spill_pixels_y * 2),
+        };
+        self.transition_bottom_texture.drawPro(getRect(self.transition_bottom_texture), bottom_dest, .{ .x = 0, .y = 0 }, 0, .white);
+
+        const top_dest = rl.Rectangle{
+            .x = -spill_pixels_x,
+            .y = top_y - spill_pixels_y,
+            .width = screenw + (spill_pixels_x * 2),
+            .height = top_height + (spill_pixels_y * 2),
+        };
+        self.transition_top_texture.drawPro(getRect(self.transition_top_texture), top_dest, .{ .x = 0, .y = 0 }, 0, .white);
     }
 };
 
@@ -314,6 +375,7 @@ pub fn main() anyerror!void {
     try state.loadMaskTextures();
     try state.loadDamageTextures();
     try state.loadKarrakonjulaTextures();
+    try state.loadTransitionTextures();
 
     level1.enemies[0] = Enemy{
         .attack_speed_ms = 2000,
@@ -383,6 +445,8 @@ pub fn main() anyerror!void {
         rl.clearBackground(.white);
 
         const mouse_pos = rl.getMousePosition();
+        // In update section:
+        state.updateTransition(@floatCast(dt));
 
         switch (state.phase) {
             .intro => {
@@ -453,8 +517,7 @@ pub fn main() anyerror!void {
                         // choose mask...
                         const mask = Mask{ .colour = .blue, .index = 0 };
                         state.fighters.appendAssumeCapacity(fighter.getFighterStats(mask));
-                        state.nextPhase();
-                        break;
+                        state.triggerNextPhaseTransition();
                     }
                 }
             },
@@ -463,9 +526,12 @@ pub fn main() anyerror!void {
             },
         }
 
+        // At END of render (after switch statement):
+        state.renderTransition();
+
         if (debug_mode) {
             if (rg.button(.{ .height = 35, .width = 200, .x = 10, .y = 10 }, "Next phase")) {
-                state.nextPhase();
+                state.triggerNextPhaseTransition();
             }
             _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(state.phase));
         }

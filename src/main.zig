@@ -2,6 +2,13 @@ const std = @import("std");
 const rl = @import("raylib");
 const perlin = @import("perlin.zig");
 const rg = @import("raygui");
+const Level = @import("level.zig").Level;
+
+// atck range, atack speed, speed
+pub const Enemy = struct {
+    fireRate: u32,
+    range: u32,
+};
 
 pub const State = struct {
     const GameState = enum {
@@ -21,8 +28,9 @@ pub const State = struct {
     }
 };
 
-var state: State = .{};
-var debug_mode: bool = true;
+pub var state: State = .{ .phase = .level1 };
+pub var debug_mode: bool = true;
+pub var level1 = Level{};
 
 const Fighter = enum {
     strong,
@@ -112,6 +120,8 @@ pub fn main() anyerror!void {
 
     const menu_texture = try rl.loadTexture("assets/menu_day.png");
 
+    level1.enemies[0] = Enemy{ .fireRate = 10, .range = 5 };
+    level1.enemies[1] = Enemy{ .fireRate = 10, .range = 5 };
     const rect: rl.Rectangle = .{
         .x = 0,
         .y = 0,
@@ -138,6 +148,15 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(.tab)) {
             debug_mode = !debug_mode;
         }
+
+        switch (state.phase) {
+            .level1 => {
+                level1.update(0.0);
+            },
+            else => {
+                std.log.debug("Main loop update not implemented for phase: {t}", .{state.phase});
+            },
+        }
         rl.beginDrawing();
         defer rl.endDrawing();
 
@@ -160,6 +179,15 @@ pub fn main() anyerror!void {
                 state.fighters.appendAssumeCapacity(std.meta.stringToEnum(Fighter, fighter.name).?.getFighterStats());
                 break;
             }
+        }
+
+        switch (state.phase) {
+            .level1 => {
+                level1.render();
+            },
+            else => {
+                std.log.debug("Main loop render not implemented for phase: {t}", .{state.phase});
+            },
         }
 
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);

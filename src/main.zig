@@ -318,9 +318,9 @@ pub fn main() anyerror!void {
             .intro => {
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
 
-                drawSprite(village, horizontal_middle, 500, 1, 0);
+                drawSprite(village, horizontal_middle, 550, 1, 0);
 
-                drawSprite(sun_rays, horizontal_middle, 160, 0.7, time * 10);
+                drawSprite(sun_rays, horizontal_middle, 180, 0.7, time * 10);
 
                 const cloud_1_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 34.5, .z = 345.3 });
                 drawSprite(cloud, horizontal_middle - 400, 100, 1, cloud_1_noise * 15);

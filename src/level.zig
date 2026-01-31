@@ -18,6 +18,8 @@ const enemy_x = 600;
 const enemy_y = 300;
 const healthbar_height = 50;
 
+const DAMANGE_ANIMATION_SIZE = 100;
+
 fn renderDamageAnimation(animation: *const Animation, x: f32, y: f32, width: f32, height: f32) void {
     if (animation.isPlaying()) {
         const frame = animation.getCurrentFrame();
@@ -29,6 +31,19 @@ fn renderDamageAnimation(animation: *const Animation, x: f32, y: f32, width: f32
             0,
             rl.Color.white,
         );
+    }
+}
+
+fn drawHealthBar(x: i32, y: i32, width: i32, height: i32, current_health: usize, max_health: usize) void {
+    // Draw background bar (empty/dark)
+    rl.drawRectangle(x, y, width, height, rl.Color.dark_gray);
+
+    // Draw current health bar (green)
+    if (max_health > 0) {
+        const health_ratio: f32 = @as(f32, @floatFromInt(current_health)) / @as(f32, @floatFromInt(max_health));
+        const health_height: i32 = @intFromFloat(@as(f32, @floatFromInt(height)) * health_ratio);
+        const y_offset = height - health_height;
+        rl.drawRectangle(x, y + y_offset, width, health_height, rl.Color.green);
     }
 }
 
@@ -44,6 +59,7 @@ fn applyDamageEventFighter(entity: *m.FighterStats) void {
     entity.health, const of = @subWithOverflow(entity.health, entity.damage_to_take);
     if (of == 1) {
         entity.health = 0;
+        std.debug.print("YOU DIED\n", .{});
     }
     entity.damage_to_take = 0;
 }
@@ -55,13 +71,12 @@ pub const Level = struct {
 
     pub fn render(self: *Self) void {
         for (state.fighters.items, 0..) |fighter, idx| {
-            _ = fighter; // autofix
+            if (fighter.health == 0) continue;
             const i: i32 = @intCast(idx);
             const px = player_x - i * 30;
             const py = player_y - i * 30;
-            rl.drawRectangle(px + player_width + 10, py, 10, healthbar_height, rl.Color.green);
-            rl.drawRectangle(px + player_width + 10, py, 10, healthbar_height / 2, rl.Color.red);
             rl.drawRectangle(px, py, 100, 100, rl.Color.yellow);
+            drawHealthBar(px + player_width + 10, py, 10, healthbar_height, fighter.health, fighter.max_health);
         }
         // Draw all enemy rectangles first
         for (self.enemies, 0..) |e, idx| {
@@ -71,15 +86,18 @@ pub const Level = struct {
                 }
                 const i: i32 = @intCast(idx);
                 rl.drawRectangle(enemy_x + i * 30, enemy_y - i * 30, 100, 100, rl.Color.blue);
+                drawHealthBar(enemy_x + i * 30 - 20, enemy_y - i * 30 - 20, 10, healthbar_height, enemy.health, enemy.max_health);
             }
         }
 
         // Draw damage animations on top (fighters then enemies)
         for (state.fighters.items, 0..) |fighter, idx| {
+            if (fighter.health == 0) continue;
+
             const i: i32 = @intCast(idx);
             const px = player_x - i * 30;
             const py = player_y - i * 30;
-            renderDamageAnimation(&fighter.damage_animation, @floatFromInt(px), @floatFromInt(py), 100, 100);
+            renderDamageAnimation(&fighter.damage_animation, @floatFromInt(px), @floatFromInt(py), DAMANGE_ANIMATION_SIZE, DAMANGE_ANIMATION_SIZE);
         }
 
         for (self.enemies, 0..) |e, idx| {
@@ -88,7 +106,7 @@ pub const Level = struct {
                     continue;
                 }
                 const i: i32 = @intCast(idx);
-                renderDamageAnimation(&enemy.damage_animation, @floatFromInt(enemy_x + i * 30), @floatFromInt(enemy_y - i * 30), 100, 100);
+                renderDamageAnimation(&enemy.damage_animation, @floatFromInt(enemy_x + i * 30), @floatFromInt(enemy_y - i * 30), DAMANGE_ANIMATION_SIZE, DAMANGE_ANIMATION_SIZE);
             }
         }
     }
@@ -133,16 +151,13 @@ pub const Level = struct {
             }
         }
 
-        // Update fighter damage animations and handle events
         for (state.fighters.items) |*f| {
             const dmg_event = f.damage_animation.update(dtToMs(dt));
             if (dmg_event == .apply_damage) {
                 applyDamageEventFighter(f);
             }
-        }
+            if (f.health == 0) continue;
 
-        // Fighter attacks
-        for (state.fighters.items) |*f| {
             if (closest_enemy) |enemy| {
                 if (f.range >= enemy.x_val) {
                     f.attack_time_buffer += dtToMs(dt);

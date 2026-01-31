@@ -20,8 +20,18 @@ pub const State = struct {
         outro,
     };
 
+    fn loadFighterTextures(self: *State) !void {
+        inline for (@typeInfo(Fighter).@"enum".fields, 0..) |f, i| {
+            const fighter_name = f.name;
+            const fighter_texture = try rl.loadTexture("assets/bodies/" ++ fighter_name ++ ".png");
+
+            self.fighter_textures[i] = fighter_texture;
+        }
+    }
+
     var fighters_buf: [10]FighterStats = undefined;
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
+    fighter_textures: [@typeInfo(Fighter).@"enum".fields.len]rl.Texture2D = undefined,
 
     phase: GameState = .intro,
     pub fn nextPhase(self: *State) void {
@@ -120,6 +130,7 @@ pub fn main() anyerror!void {
     rg.setStyle(.default, .{ .default = .text_size }, 30);
 
     const menu_texture = try rl.loadTexture("assets/menu_day.png");
+    try state.loadFighterTextures();
 
     level1.enemies[0] = Enemy{ .fireRate = 10, .range = 5 };
     level1.enemies[1] = Enemy{ .fireRate = 10, .range = 5 };
@@ -168,26 +179,47 @@ pub fn main() anyerror!void {
                 rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
 
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
+
+                drawFullscreenCentered(menu_texture);
             },
             .level1 => {
                 level1.render();
             },
             .chose_fighter => {
-                drawFullscreenCentered(menu_texture);
-
                 rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
 
-                inline for (@typeInfo(Fighter).@"enum".fields, 0..) |fighter, i| {
-                    if (rg.button(
-                        .{
-                            .height = 100,
-                            .width = 100,
-                            .x = 100 + 100 * i,
-                            .y = 100,
-                        },
-                        fighter.name,
-                    )) {
-                        state.fighters.appendAssumeCapacity(std.meta.stringToEnum(Fighter, fighter.name).?.getFighterStats());
+                inline for (@typeInfo(Fighter).@"enum".fields) |f| {
+                    const fighter_name = f.name;
+                    const fighter = std.meta.stringToEnum(Fighter, fighter_name).?;
+                    const fighter_int = @intFromEnum(fighter);
+                    const fighter_texture = state.fighter_textures[fighter_int];
+
+                    const button_rect = rl.Rectangle{
+                        .x = 100 + 150 * @as(f32, @floatFromInt(fighter_int)),
+                        .y = 150,
+                        .width = 120,
+                        .height = 120,
+                    };
+
+                    const mouse_pos = rl.getMousePosition();
+                    const is_hovered = rl.checkCollisionPointRec(mouse_pos, button_rect);
+                    const is_clicked = is_hovered and rl.isMouseButtonPressed(.left);
+
+                    rl.drawRectangleRec(button_rect, if (is_hovered) rl.Color.light_gray else rl.Color.gray);
+                    rl.drawRectangleLinesEx(button_rect, 2, rl.Color.dark_gray);
+
+                    const img_size: f32 = 100;
+                    const img_x = button_rect.x + (button_rect.width - img_size) / 2;
+                    const img_y = button_rect.y + 10;
+
+                    fighter_texture.drawPro(getRect(fighter_texture), .{ .x = img_x, .y = img_y, .width = img_size, .height = img_size }, .{ .x = 0, .y = 0 }, 0, .white);
+
+                    const name_width = rl.measureText(fighter_name, 16);
+                    rl.drawText(fighter_name, @intFromFloat(button_rect.x + (button_rect.width - @as(f32, @floatFromInt(name_width))) / 2), @intFromFloat(button_rect.y + button_rect.height - 25), 16, .black);
+
+                    if (is_clicked) {
+                        state.fighters.appendAssumeCapacity(fighter.getFighterStats());
+                        state.nextPhase();
                         break;
                     }
                 }

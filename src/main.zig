@@ -39,6 +39,8 @@ pub const State = struct {
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
     fighter_textures: [fighter_num]rl.Texture2D = undefined,
 
+    scale: f32 = undefined,
+
     phase: GameState = .intro,
     pub fn nextPhase(self: *State) void {
         self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
@@ -135,23 +137,21 @@ fn drawFullscreenCentered(tex: rl.Texture2D) void {
     tex.drawPro(getRect(tex), screen_rect, .{ .x = 0, .y = 0 }, 0, .white);
 }
 
-pub fn drawSpriteCentered(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void {
+// Pivot is at center
+pub fn drawSprite(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void {
     const rect: rl.Rectangle = .{
-        .x = x,
-        .y = y,
-        .width = @as(f32, @floatFromInt(tex.width)) * scale,
-        .height = @as(f32, @floatFromInt(tex.height)) * scale,
+        .x = x * state.scale,
+        .y = y * state.scale,
+        .width = @as(f32, @floatFromInt(tex.width)) * scale * state.scale,
+        .height = @as(f32, @floatFromInt(tex.height)) * scale * state.scale,
     };
-    tex.drawPro(
-        getRect(tex),
-        rect,
-        .{
-            .x = @as(f32, @floatFromInt(tex.width)) / 2,
-            .y = @as(f32, @floatFromInt(tex.height)) / 2,
-        },
-        rot,
-        .white,
-    );
+
+    const pivot: rl.Vector2 = .{
+        .x = @as(f32, @floatFromInt(tex.width)) / 2 * state.scale * scale,
+        .y = @as(f32, @floatFromInt(tex.height)) / 2 * state.scale * scale,
+    };
+
+    tex.drawPro(getRect(tex), rect, pivot, rot, .white);
 }
 
 pub fn dtToMs(dt: f64) usize {
@@ -159,19 +159,21 @@ pub fn dtToMs(dt: f64) usize {
 }
 
 pub fn main() anyerror!void {
-    const screenWidth = 800;
-    const screenHeight = 450;
+    const baseWidth = 1280;
+    const baseHeight = 720;
 
     rl.setConfigFlags(.{ .window_resizable = true });
 
-    rl.initWindow(screenWidth, screenHeight, "Karrankonjules attack!");
+    rl.initWindow(baseWidth, baseHeight, "Karrankonjules attack!");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
     rg.setStyle(.default, .{ .default = .text_size }, 30);
 
     const menu_texture = try rl.loadTexture("assets/menu_day.png");
+    const village = try rl.loadTexture("assets/village.png");
     const sun_rays = try rl.loadTexture("assets/sun_rays.png");
+    const cloud = try rl.loadTexture("assets/clouds/cloud_1.png");
     try state.loadFighterTextures();
 
     level1.enemies[0] = Enemy{
@@ -211,11 +213,18 @@ pub fn main() anyerror!void {
     var last_frame_time = rl.getTime();
     while (!rl.windowShouldClose()) {
         const screenw: f32 = @floatFromInt(rl.getScreenWidth());
-        // const screenh: f32 = @floatFromInt(rl.getScreenHeight());
+        const screenh: f32 = @floatFromInt(rl.getScreenHeight());
         const time: f32 = @floatCast(rl.getTime());
         const dt = time - last_frame_time;
         last_frame_time = time;
         const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
+
+        const heightRatio: f32 = screenh / @as(f32, @floatFromInt(baseHeight));
+        state.scale = heightRatio;
+
+        const horizontal_middle: f32 = baseWidth / 2;
+
+        std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
 
         // INPUT
         if (rl.isKeyPressed(.tab)) {
@@ -241,7 +250,13 @@ pub fn main() anyerror!void {
 
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
 
-                drawFullscreenCentered(menu_texture);
+                //drawFullscreenCentered(menu_texture);
+                drawFullscreenCentered(village);
+
+                drawSprite(sun_rays, screenw / 2 * state.scale, 160, 0.7, time * 10);
+
+                const cloud_1_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 34.5, .z = 345.3 });
+                drawSprite(cloud, horizontal_middle - 400, 100, 1, cloud_1_noise * 15);
             },
             .level1 => {
                 level1.render();
@@ -291,18 +306,6 @@ pub fn main() anyerror!void {
                 std.log.debug("Main loop render not implemented for phase: {t}", .{state.phase});
             },
         }
-
-        const sun_rect = getRect(sun_rays);
-
-        sun_rays.drawPro(
-            getRect(sun_rays),
-            getRect(sun_rays),
-            .{ .x = sun_rect.width / 2, .y = sun_rect.height / 2 },
-            time * 20,
-            .white,
-        );
-
-        drawSpriteCentered(sun_rays, screenw / 2, 30, 1, time * 10);
 
         if (debug_mode) {
             if (rg.button(.{ .height = 35, .width = 200, .x = 10, .y = 10 }, "Next phase")) {

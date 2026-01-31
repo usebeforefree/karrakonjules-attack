@@ -1,18 +1,25 @@
 const std = @import("std");
 const rl = @import("raylib");
 const perlin = @import("perlin.zig");
+const rg = @import("raygui");
 
-const State = struct {
+pub const State = struct {
     const GameState = enum {
         intro,
-        game,
+        shop1,
+        level1,
+        cutscene1,
         outro,
     };
 
-    var phase: GameState = .intro;
+    phase: GameState = .intro,
+    pub fn nextPhase(self: *State) void {
+        self.phase = std.meta.intToEnum(GameState, @intFromEnum(self.phase) + 1) catch self.phase;
+    }
 };
 
 var state: State = .{};
+var debug_mode: bool = true;
 
 fn getRect(tex: rl.Texture2D) rl.Rectangle {
     return .{
@@ -54,6 +61,7 @@ pub fn main() anyerror!void {
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
+    rg.setStyle(.default, .{ .default = .text_size }, 30);
 
     const menu_texture = try rl.loadTexture("assets/menu_day.png");
 
@@ -79,8 +87,10 @@ pub fn main() anyerror!void {
         const time: f32 = @floatCast(rl.getTime());
         const offset_noise = perlin.noise(f32, perlin.permutation, .{ .x = time, .y = 34.5, .z = 345.3 }) * 100;
 
-        //const target = try rl.loadRenderTexture(1024, 786);
-
+        // INPUT
+        if (rl.isKeyPressed(.tab)) {
+            debug_mode = !debug_mode;
+        }
         rl.beginDrawing();
         defer rl.endDrawing();
 
@@ -91,5 +101,12 @@ pub fn main() anyerror!void {
         drawScaled(menu_texture);
 
         rl.drawText("Karrakonjules attack!", @intFromFloat(offset_noise), 20, 100, .black);
+
+        if (debug_mode) {
+            if (rg.button(.{ .height = 35, .width = 200, .x = 10, .y = 10 }, "Next phase")) {
+                state.nextPhase();
+            }
+            _ = rg.label(.{ .height = 75, .width = 100, .x = 10, .y = 30 }, @tagName(state.phase));
+        }
     }
 }

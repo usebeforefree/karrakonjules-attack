@@ -10,14 +10,15 @@ const drawSprite = m.drawSprite;
 const drawSpriteTint = m.drawSpriteTint;
 
 var state = &m.state;
+const State = m.State;
 
 const player_x = 100;
 const player_y = 300;
 const player_width = 100;
 const player_height = 100;
 
-const enemy_x = 600;
-const enemy_y = 300;
+var center_x: f32 = 0;
+const enemy_y = 720 - 200;
 const healthbar_height = 50;
 const PLAYER_OFFSET = 70;
 
@@ -41,16 +42,30 @@ fn renderDamageAnimation(animation: *const Animation, x: f32, y: f32, width: f32
     }
 }
 
-fn drawHealthBar(x: i32, y: i32, width: i32, height: i32, current_health: usize, max_health: usize) void {
+fn drawHealthBar(x: f32, y: f32, width: f32, height: f32, current_health: usize, max_health: usize) void {
     // Draw background bar (empty/dark)
-    rl.drawRectangle(x, y, width, height, rl.Color.dark_gray);
+    const scaled_rect = m.getScaledRect(x, y, width, height, 1);
+    rl.drawRectangle(
+        @intFromFloat(scaled_rect.x),
+        @intFromFloat(scaled_rect.y),
+        @intFromFloat(scaled_rect.width),
+        @intFromFloat(scaled_rect.height),
+        rl.Color.dark_gray,
+    );
 
     // Draw current health bar (green)
     if (max_health > 0) {
         const health_ratio: f32 = @as(f32, @floatFromInt(current_health)) / @as(f32, @floatFromInt(max_health));
-        const health_height: i32 = @intFromFloat(@as(f32, @floatFromInt(height)) * health_ratio);
+        const health_height: f32 = height * health_ratio;
         const y_offset = height - health_height;
-        rl.drawRectangle(x, y + y_offset, width, health_height, rl.Color.green);
+        const scaled_rect_green = m.getScaledRect(x, y + y_offset, width, health_height, 1);
+        rl.drawRectangle(
+            @intFromFloat(scaled_rect_green.x),
+            @intFromFloat(scaled_rect_green.y),
+            @intFromFloat(scaled_rect_green.width),
+            @intFromFloat(scaled_rect_green.height),
+            rl.Color.green,
+        );
     }
 }
 
@@ -77,28 +92,31 @@ pub const Level = struct {
     const Self = @This();
 
     pub fn render(self: *Self) void {
+        center_x = state.horizontal_middle;
         // DRAW fighters with healthbars
         for (state.fighters.items, 0..) |fighter, idx| {
             if (fighter.health == 0) continue;
             const i: i32 = @intCast(idx);
-            const px = player_x - i * PLAYER_OFFSET;
-            const py = player_y - i * PLAYER_OFFSET;
-            rl.drawRectangle(px, py, 100, 100, rl.Color.yellow);
-            drawHealthBar(px + player_width + 10, py, 10, healthbar_height, fighter.health, fighter.max_health);
+            const px: f32 = @floatFromInt(player_x - i * PLAYER_OFFSET);
+            const py: f32 = @floatFromInt(player_y - i * PLAYER_OFFSET);
+
+            // rl.drawRectangle(px, py, 100, 100, rl.Color.yellow,);
+            drawHealthBar(px + 60, py, 10, healthbar_height, fighter.health, fighter.max_health);
         }
-        // Draw all enemy rectangles first
+        // Draw all enemy sprites first
         for (self.enemies, 0..) |e, idx| {
             if (e) |enemy| {
                 if (enemy.health == 0) {
                     continue;
                 }
-                const i: i32 = @intCast(idx);
-                const px: f32 = @floatFromInt(enemy_x + i * PLAYER_OFFSET);
-                const py: f32 = @floatFromInt(enemy_y + i * PLAYER_OFFSET);
+                const i: f32 = @floatFromInt(idx);
+
+                const px: f32 = center_x + i * PLAYER_OFFSET;
+                const py: f32 = enemy_y + i * PLAYER_OFFSET;
                 std.log.debug("px {d} py{d}", .{ px, py });
                 // rl.drawRectangle(px, py, 100, 100, rl.Color.blue);
                 drawSprite(state.karrakonjula_textures[enemy.sprite_id], px, py, 0.4, 0);
-                drawHealthBar(@intFromFloat(px * state.scale), @intFromFloat(py * state.scale), 10, healthbar_height, enemy.health, enemy.max_health);
+                drawHealthBar(px - 60, py, 10, healthbar_height, enemy.health, enemy.max_health);
             }
         }
 
@@ -117,8 +135,8 @@ pub const Level = struct {
                 if (enemy.health == 0) {
                     continue;
                 }
-                const i: i32 = @intCast(idx);
-                renderDamageAnimation(&enemy.damage_animation, @floatFromInt(enemy_x + i * 30), @floatFromInt(enemy_y - i * 30), DAMANGE_ANIMATION_SIZE, DAMANGE_ANIMATION_SIZE);
+                const i: f32 = @floatFromInt(idx);
+                renderDamageAnimation(&enemy.damage_animation, center_x + i * 30, enemy_y - i * 30, DAMANGE_ANIMATION_SIZE, DAMANGE_ANIMATION_SIZE);
             }
         }
     }

@@ -79,6 +79,9 @@ pub const Enemy = struct {
 };
 
 pub const State = struct {
+    const baseWidth = 1280;
+    const baseHeight = 720;
+
     const GameState = enum {
         intro,
         chose_fighter,
@@ -152,6 +155,7 @@ pub const State = struct {
     rising: bool = false,
 
     scale: f32 = 1,
+    horizontal_middle: f32 = 0,
 
     phase: GameState = .intro,
     pub fn triggerNextPhaseTransition(self: *State) void {
@@ -367,12 +371,9 @@ pub fn dtToMs(dt: f64) usize {
 }
 
 pub fn main() anyerror!void {
-    const baseWidth = 1280;
-    const baseHeight = 720;
-
     rl.setConfigFlags(.{ .window_resizable = true });
 
-    rl.initWindow(baseWidth, baseHeight, "Karrankonjules attack!");
+    rl.initWindow(State.baseWidth, State.baseHeight, "Karrankonjules attack!");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);
@@ -434,10 +435,11 @@ pub fn main() anyerror!void {
         const dt = time - last_frame_time;
         last_frame_time = time;
 
-        const heightRatio: f32 = screenh / @as(f32, @floatFromInt(baseHeight));
+        const heightRatio: f32 = screenh / @as(f32, @floatFromInt(State.baseHeight));
         state.scale = heightRatio;
 
         const horizontal_middle: f32 = screenw / 2 / state.scale;
+        state.horizontal_middle = horizontal_middle;
 
         std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
 

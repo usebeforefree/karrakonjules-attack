@@ -64,9 +64,45 @@ const FighterStats = struct {
     range: usize,
 };
 
+fn getRect(tex: rl.Texture2D) rl.Rectangle {
+    return .{
+        .x = 0,
+        .y = 0,
+        .width = @floatFromInt(tex.width),
+        .height = @floatFromInt(tex.height),
+    };
+}
+
+fn drawFullscreenCentered(tex: rl.Texture2D) void {
+    const sw: f32 = @floatFromInt(rl.getScreenWidth());
+    const sh: f32 = @floatFromInt(rl.getScreenHeight());
+
+    const aspect = sh / sw;
+    _ = aspect;
+    const tw: f32 = @floatFromInt(tex.width);
+    const th: f32 = @floatFromInt(tex.height);
+
+    const ratio = sh / th;
+
+    const center = sw / 2;
+
+    const target_width = tw * ratio;
+
+    const screen_rect: rl.Rectangle = .{
+        .x = center - target_width / 2,
+        .y = 0,
+        .width = target_width,
+        .height = th * ratio,
+    };
+
+    tex.drawPro(getRect(tex), screen_rect, .{ .x = 0, .y = 0 }, 0, .white);
+}
+
 pub fn main() anyerror!void {
     const screenWidth = 800;
     const screenHeight = 450;
+
+    rl.setConfigFlags(.{ .window_resizable = true });
 
     rl.initWindow(screenWidth, screenHeight, "Karrankonjules attack!");
     defer rl.closeWindow();
@@ -83,12 +119,16 @@ pub fn main() anyerror!void {
         .height = @floatFromInt(menu_texture.height),
     };
 
-    const rect2: rl.Rectangle = .{
+    _ = rect;
+
+    const screen_rect: rl.Rectangle = .{
         .x = 0,
         .y = 0,
         .width = @floatFromInt(rl.getScreenWidth()),
         .height = @floatFromInt(rl.getRenderHeight()),
     };
+
+    _ = screen_rect;
 
     while (!rl.windowShouldClose()) {
         const time: f32 = @floatCast(rl.getTime());
@@ -102,8 +142,8 @@ pub fn main() anyerror!void {
         defer rl.endDrawing();
 
         rl.clearBackground(.white);
-        rl.drawTexture(menu_texture, 0, 0, .white);
-        rl.drawTexturePro(menu_texture, rect, rect2, .{ .x = 0, .y = 0 }, 0, .white);
+
+        drawFullscreenCentered(menu_texture);
 
         rl.drawText("Choose Your Fighter", 200, 50, 40, .black);
 

@@ -267,6 +267,10 @@ pub fn getScaledRect(x: f32, y: f32, w: f32, h: f32, scale: f32) rl.Rectangle {
     };
 }
 
+pub fn getScaledTexRect(tex: rl.Texture2D, x: f32, y: f32, scale: f32) rl.Rectangle {
+    return getScaledRect(x, y, toF(tex.width), toF(tex.height), scale);
+}
+
 fn toF(int: i32) f32 {
     return @floatFromInt(int);
 }
@@ -395,6 +399,17 @@ pub fn main() anyerror!void {
 
                 const cloud_2_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 134.5, .z = 245.3 });
                 drawSprite(cloud_2, horizontal_middle + 400, 100, 0.7, cloud_2_noise * 15);
+
+                const play_rect = getScaledTexRect(sun_play, horizontal_middle, 180, 0);
+                const play_hovered = rl.checkCollisionPointRec(mouse_pos, play_rect);
+
+                if (play_hovered) {
+                    std.log.info("hovering", .{});
+
+                    if (rl.isMouseButtonPressed(.left)) {
+                        std.log.info("CLICKED", .{});
+                    }
+                }
             },
             .level1 => {
                 level1.render();
@@ -409,7 +424,7 @@ pub fn main() anyerror!void {
                     const fighter_texture = state.fighter_textures[fighter_int];
 
                     const button_rect = rl.Rectangle{
-                        .x = 100 + 150 * @as(f32, @floatFromInt(fighter_int)),
+                        .x = horizontal_middle + 150 * @as(f32, @floatFromInt(fighter_int)),
                         .y = 150,
                         .width = 120,
                         .height = 120,

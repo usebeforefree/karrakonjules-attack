@@ -9,6 +9,9 @@ pub const AnimationEvent = enum {
     apply_damage,
 };
 
+pub const DMG_ANIMATION_FRAME_TIME = 50;
+pub const DMG_ANIMATION_FRAMES = 8;
+
 pub const Animation = struct {
     time_elapsed: usize = 0,
     frame_time: usize,
@@ -71,10 +74,7 @@ pub const Enemy = struct {
     x_val: f64 = 100,
 
     damage_to_take: usize = 0,
-    damage_animation: Animation = Animation.init(100, 8, .apply_damage),
-
-    pub const dmg_frame_time = 100;
-    pub const dmg_frames = 8;
+    damage_animation: Animation = Animation.init(DMG_ANIMATION_FRAME_TIME, DMG_ANIMATION_FRAMES, .apply_damage),
 };
 
 pub const State = struct {
@@ -96,7 +96,7 @@ pub const State = struct {
         }
     }
     fn loadDamageTextures(self: *State) !void {
-        inline for (0..Enemy.dmg_frames) |i| {
+        inline for (0..DMG_ANIMATION_FRAMES) |i| {
             self.damage_textures[i] = try rl.loadTexture(std.fmt.comptimePrint("assets/dmg_effect/dmg_{d}.png", .{i + 1}));
         }
     }
@@ -136,7 +136,7 @@ pub const State = struct {
     fighters: std.ArrayList(FighterStats) = .initBuffer(&fighters_buf),
     fighter_textures: [fighter_num]rl.Texture2D = undefined,
     mask_textures: [mask_num]rl.Texture2D = undefined,
-    damage_textures: [Enemy.dmg_frames]rl.Texture2D = undefined,
+    damage_textures: [DMG_ANIMATION_FRAMES]rl.Texture2D = undefined,
     karrakonjula_textures: [karrakonjules_num]rl.Texture2D = undefined,
 
     scale: f32 = 1,
@@ -200,7 +200,7 @@ pub const FighterStats = struct {
     mask: Mask,
 
     damage_to_take: usize = 0,
-    damage_animation: Animation = Animation.init(100, 8, .apply_damage),
+    damage_animation: Animation = Animation.init(DMG_ANIMATION_FRAME_TIME, DMG_ANIMATION_FRAMES, .apply_damage),
 };
 
 const Mask = struct {

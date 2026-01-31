@@ -258,18 +258,26 @@ fn getScreenY(y: f32) f32 {
     return y * state.scale;
 }
 
-// Pivot is at center
-pub fn drawSprite(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void {
-    const rect: rl.Rectangle = .{
+pub fn getScaledRect(x: f32, y: f32, w: f32, h: f32, scale: f32) rl.Rectangle {
+    return .{
         .x = x * state.scale,
         .y = y * state.scale,
-        .width = @as(f32, @floatFromInt(tex.width)) * scale * state.scale,
-        .height = @as(f32, @floatFromInt(tex.height)) * scale * state.scale,
+        .width = w * scale * state.scale,
+        .height = h * scale * state.scale,
     };
+}
+
+fn toF(int: i32) f32 {
+    return @floatFromInt(int);
+}
+
+// Pivot is at center
+pub fn drawSprite(tex: rl.Texture2D, x: f32, y: f32, scale: f32, rot: f32) void {
+    const rect = getScaledRect(x, y, toF(tex.width), toF(tex.height), scale);
 
     const pivot: rl.Vector2 = .{
-        .x = @as(f32, @floatFromInt(tex.width)) / 2 * state.scale * scale,
-        .y = @as(f32, @floatFromInt(tex.height)) / 2 * state.scale * scale,
+        .x = toF(tex.width) / 2 * state.scale * scale,
+        .y = toF(tex.height) / 2 * state.scale * scale,
     };
 
     tex.drawPro(getRect(tex), rect, pivot, rot, .white);
@@ -370,6 +378,8 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(.white);
 
+        const mouse_pos = rl.getMousePosition();
+
         switch (state.phase) {
             .intro => {
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
@@ -405,7 +415,6 @@ pub fn main() anyerror!void {
                         .height = 120,
                     };
 
-                    const mouse_pos = rl.getMousePosition();
                     const is_hovered = rl.checkCollisionPointRec(mouse_pos, button_rect);
                     const is_clicked = is_hovered and rl.isMouseButtonPressed(.left);
 

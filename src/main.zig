@@ -168,7 +168,7 @@ pub const State = struct {
 
         if (self.rising) {
             if (self.transition_progress < 1.0) {
-                self.transition_progress += dt * 1.0;
+                self.transition_progress += dt * 2.0;
                 return;
             } else {
                 self.rising = false;
@@ -176,7 +176,7 @@ pub const State = struct {
             }
         }
 
-        self.transition_progress -= dt * 1.0;
+        self.transition_progress -= dt * 2.0;
 
         if (self.transition_progress < 0.0) {
             self.transition_progress = 0.0;
@@ -185,33 +185,10 @@ pub const State = struct {
     }
 
     pub fn renderTransition(self: *State) void {
-        const screenw: f32 = @floatFromInt(rl.getScreenWidth());
-        const screenh: f32 = @floatFromInt(rl.getScreenHeight());
-        const top_height: f32 = @floatFromInt(self.transition_top_texture.height);
-        const bottom_height: f32 = @floatFromInt(self.transition_bottom_texture.height);
-        const overlap: f32 = 150;
-        const spill_pixels_x: f32 = 120;
-        const spill_pixels_y: f32 = 170;
-        const top_y = -top_height + ((top_height + overlap) * self.transition_progress);
-        const bottom_y = screenh - ((bottom_height + overlap) * self.transition_progress);
+        const size: f32 = 1.6;
 
-        const bottom_dest = rl.Rectangle{
-            .x = -spill_pixels_x,
-            .y = bottom_y - spill_pixels_y,
-            .width = screenw + (spill_pixels_x * 2),
-            .height = bottom_height + (spill_pixels_y * 2),
-        };
-        self.transition_bottom_texture.drawPro(getRect(self.transition_bottom_texture), bottom_dest, .{ .x = 0, .y = 0 }, 0, .white);
-
-        //drawSprite(self.transition_bottom_texture, state., y: f32, scale: f32, rot: f32)
-
-        const top_dest = rl.Rectangle{
-            .x = -spill_pixels_x,
-            .y = top_y - spill_pixels_y,
-            .width = screenw + (spill_pixels_x * 2),
-            .height = top_height + (spill_pixels_y * 2),
-        };
-        self.transition_top_texture.drawPro(getRect(self.transition_top_texture), top_dest, .{ .x = 0, .y = 0 }, 0, .white);
+        drawSprite(self.transition_top_texture, self.horizontal_middle, -500 + self.transition_progress * 770, size, 0);
+        drawSprite(self.transition_bottom_texture, state.horizontal_middle, 500 - self.transition_progress * 550, size, 0);
     }
 };
 
@@ -336,7 +313,7 @@ pub fn getScaledRect(x: f32, y: f32, w: f32, h: f32, scale: f32) rl.Rectangle {
 }
 
 pub fn getScaledTexRect(tex: rl.Texture2D, x: f32, y: f32, scale: f32) rl.Rectangle {
-    return getScaledRect(x, y, toF(tex.width), toF(tex.height), scale);
+    return getScaledRect(x - toF(tex.width) / 2, y - toF(tex.height) / 2, toF(tex.width), toF(tex.height), scale);
 }
 
 fn toF(int: i32) f32 {
@@ -447,7 +424,7 @@ pub fn main() anyerror!void {
         const horizontal_middle: f32 = screenw / 2 / state.scale;
         state.horizontal_middle = horizontal_middle;
 
-        std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
+        // std.log.info("screen w: {}, h: {}, ratio: {}", .{ screenw, screenh, heightRatio });
 
         // INPUT
         if (rl.isKeyPressed(.tab)) {
@@ -487,7 +464,7 @@ pub fn main() anyerror!void {
                 const cloud_2_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 134.5, .z = 245.3 });
                 drawSprite(cloud_2, horizontal_middle + 400, 100, 0.7, cloud_2_noise * 15);
 
-                const play_rect = getScaledTexRect(sun_play, horizontal_middle, 180, 0);
+                const play_rect = getScaledTexRect(sun_play, horizontal_middle, 180, 0.7);
                 const play_hovered = rl.checkCollisionPointRec(mouse_pos, play_rect);
 
                 if (play_hovered) {
@@ -495,6 +472,7 @@ pub fn main() anyerror!void {
 
                     if (rl.isMouseButtonPressed(.left)) {
                         std.log.info("CLICKED", .{});
+                        state.triggerNextPhaseTransition();
                     }
                 }
             },

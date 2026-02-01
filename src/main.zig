@@ -386,6 +386,12 @@ pub fn main() anyerror!void {
     const cloud = try rl.loadTexture("assets/clouds/cloud_1.png");
     const cloud_2 = try rl.loadTexture("assets/clouds/cloud_2.png");
 
+    rl.initAudioDevice();
+
+    const sound = try rl.loadSound("assets/audio/karakondzula.wav");
+
+    rl.playSound(sound);
+
     try state.loadFighterTextures();
     try state.loadMaskTextures();
     try state.loadDamageTextures();

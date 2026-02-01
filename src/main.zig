@@ -357,11 +357,11 @@ pub fn main() anyerror!void {
     rg.setStyle(.default, .{ .default = .text_size }, 30);
 
     const menu_texture = try rl.loadTexture("assets/menu_day.png");
-    const village = try rl.loadTexture("assets/village.png");
-    const sun_rays = try rl.loadTexture("assets/sun_rays.png");
-    const sun_play = try rl.loadTexture("assets/play_button.png");
-    const cloud = try rl.loadTexture("assets/clouds/cloud_1.png");
-    const cloud_2 = try rl.loadTexture("assets/clouds/cloud_2.png");
+    const village = try rl.loadTexture("assets/main_menu/main_menu_village.png");
+    const sun_rays = try rl.loadTexture("assets/main_menu/sun_rays.png");
+    const sun_play = try rl.loadTexture("assets/main_menu/play_button.png");
+    const cloud = try rl.loadTexture("assets/main_menu/cloud_1.png");
+    const cloud_2 = try rl.loadTexture("assets/main_menu/cloud_2.png");
 
     rl.initAudioDevice();
 
@@ -452,19 +452,19 @@ pub fn main() anyerror!void {
             .intro => {
                 rl.drawText("Arrow keys to select, ENTER to confirm", 180, 400, 20, .gray);
 
-                const village_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 32.5, .z = 315.3 });
-                drawSprite(village, horizontal_middle + village_noise * 20, 550, 1, 0);
+                // const village_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 32.5, .z = 315.3 });
+                drawSprite(village, horizontal_middle + 0 * 20, 550, 0.5, 0);
 
-                drawSprite(sun_rays, horizontal_middle, 180, 0.7, time * 10);
-                drawSprite(sun_play, horizontal_middle, 180, 0.7, 0);
+                drawSprite(sun_rays, horizontal_middle, 180, 0.5, time * 10);
+                drawSprite(sun_play, horizontal_middle, 180, 0.5, 0);
 
                 const cloud_1_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 34.5, .z = 345.3 });
-                drawSprite(cloud, horizontal_middle - 400, 100, 0.7, cloud_1_noise * 15);
+                drawSprite(cloud, horizontal_middle - 400, 100, 0.5, cloud_1_noise * 15);
 
                 const cloud_2_noise = perlin.noise(f32, perlin.permutation, .{ .x = time * 0.4, .y = 134.5, .z = 245.3 });
-                drawSprite(cloud_2, horizontal_middle + 400, 100, 0.7, cloud_2_noise * 15);
+                drawSprite(cloud_2, horizontal_middle + 400, 100, 0.5, cloud_2_noise * 15);
 
-                const play_rect = getScaledTexRect(sun_play, horizontal_middle, 180, 0.7);
+                const play_rect = getScaledTexRect(sun_play, horizontal_middle, 180, 0.5);
                 const play_hovered = rl.checkCollisionPointRec(mouse_pos, play_rect);
 
                 if (play_hovered) {
